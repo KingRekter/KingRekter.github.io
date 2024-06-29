@@ -610,7 +610,19 @@
             } catch (error) {
                 if (error.code === 4902) {
                     // This error code indicates that the chain has not been added to MetaMask
-                    await addNetwork(chainId);
+                    setError(`Network is not available in MetaMask.\nAdd ${chainId} First`);
+                    const networkButtons = document.getElementById('network-buttons');
+                    networkButtons.innerHTML = ''; // Clear existing buttons
+                    if (chainId == BSC_MAINNET_CHAIN_ID) {
+                        const mainnetButton = createButton('Add BSC Mainnet', () => addNetwork(BSC_MAINNET_CHAIN_ID), 'bg-yellow-700 hover:bg-yellow-600');
+                        networkButtons.appendChild(mainnetButton);
+                    }
+
+                    if (chainId == BSC_TESTNET_CHAIN_ID) {
+                        const testnetButton = createButton('Add  BSC Testnet', () => addNetwork(BSC_TESTNET_CHAIN_ID), 'bg-purple-700 hover:bg-purple-600');
+                        networkButtons.appendChild(testnetButton);
+                    }
+                    // await addNetwork(chainId);
                 } else {
                     throw error;
                 }
@@ -622,14 +634,14 @@
                 ? {
                     chainId: BSC_MAINNET_CHAIN_ID,
                     chainName: 'Binance Smart Chain Mainnet',
-                    nativeCurrency: { name: 'BNB', symbol: 'bnb', decimals: 18 },
+                    nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
                     rpcUrls: ['https://bsc-dataseed1.binance.org/'],
                     blockExplorerUrls: ['https://bscscan.com/'],
                 }
                 : {
                     chainId: BSC_TESTNET_CHAIN_ID,
                     chainName: 'Binance Smart Chain Testnet',
-                    nativeCurrency: { name: 'BNB', symbol: 'bnb', decimals: 18 },
+                    nativeCurrency: { name: 'BNB', symbol: 'tBNB', decimals: 18 },
                     rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
                     blockExplorerUrls: ['https://testnet.bscscan.com'],
                 };
@@ -639,6 +651,7 @@
                 params: [network],
             });
         }
+
 
         async function updateNetworkInfo() {
             const contractAddressElement = document.getElementById('contract-address');
@@ -689,29 +702,12 @@
                 await updateNetworkInfo();
             } catch (err) {
                 if (err.message.includes('Unsupported network')) {
-                    await handleUnsupportedNetwork();
+                    setError('Unsupported network. Please switch to BSC Mainnet or Testnet.');
+                    checkAndDisplayNetworkButtons()
                 } else if (err.code === 4001) {
                     setError('Please connect MetaMask to use this dApp.');
                 } else {
                     setError('Failed to initialize app: ' + err.message);
-                }
-            }
-        }
-
-        async function handleUnsupportedNetwork() {
-            try {
-                // Try to switch to BSC Mainnet
-                await switchNetwork(BSC_MAINNET_CHAIN_ID);
-                await initializeApp();
-            } catch (mainnetError) {
-                console.error('Failed to switch to BSC Mainnet:', mainnetError);
-                try {
-                    // If Mainnet fails, try to switch to BSC Testnet
-                    await switchNetwork(BSC_TESTNET_CHAIN_ID);
-                    await initializeApp();
-                } catch (testnetError) {
-                    console.error('Failed to switch to BSC Testnet:', testnetError);
-                    setError('Unable to connect to BSC Mainnet or Testnet. The application is currently undergoing maintenance. Please try again later.');
                 }
             }
         }
