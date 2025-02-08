@@ -674,8 +674,8 @@
                 clearError();
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
 
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                signer = provider.getSigner();
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
 
                 currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
 
