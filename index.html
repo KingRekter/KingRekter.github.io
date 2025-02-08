@@ -1,1313 +1,878 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USD Denominated Fund Terminal</title>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" integrity="sha512-FDcVY+g7vc5CXANbrTSg1K5qLyriCsGDYCE02Li1tXEYdNQPvLPHNE+rT2Mjei8N7fZbe0WLhw27j2SrGRpdMg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <title>USD Denominated Fund Terminal - User Version</title>
+	 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js" integrity="sha512-FDcVY+g7vc5CXANbrTSg1K5qLyriCsGDYCE02Li1tXEYdNQPvLPHNE+rT2Mjei8N7fZbe0WLhw27j2SrGRpdMg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-black text-green-400 font-mono p-4 min-h-screen">
-    <h1 class="text-3xl font-bold mb-4 text-green-500">USD Denominated Fund Terminal</h1>
 
-    <!-- Alerts -->
-    <div id="server-warning" class="hidden border border-yellow-500 text-yellow-500 px-4 py-3 rounded mb-4" role="alert">
-        <strong class="font-bold">Note:</strong>
-        <span class="block sm:inline"> This app requires a web server to function with MetaMask. Please access this file through a web server.</span>
+<body class="bg-black text-green-400 font-mono p-4 min-h-screen">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+        <h1 class="text-3xl font-bold text-green-500">USD Denominated Fund Terminal</h1>
+        <div class="text-yellow-400 mt-2 sm:mt-0">
+            <p id="contract-address">Contract: Loading...</p>
+            <p id="network-type">Network: Loading...</p>
+        </div>
     </div>
-    <div id="error" class="hidden border border-red-500 text-red-500 px-4 py-3 rounded mb-4" role="alert">
+
+    <div id="server-warning" class="border border-yellow-500 text-yellow-500 px-4 py-3 rounded relative mb-4"
+        role="alert" style="display: none;">
+        <strong class="font-bold">Note:</strong>
+        <span class="block sm:inline"> This app requires a web server to function with MetaMask. If you're seeing this
+            message, please ensure you're accessing this file through a web server, not directly from your file
+            system.</span>
+    </div>
+
+    <div id="error" class="border border-red-500 text-red-500 px-4 py-3 rounded relative mb-4" role="alert"
+        style="display: none;">
         <strong class="font-bold">Error:</strong>
         <span id="error-message" class="block sm:inline"></span>
     </div>
 
-    <!-- Account and Fund Info -->
-    <div id="account-info" class="hidden border border-green-500 rounded px-4 py-3 mb-4">
-        <h2 class="text-xl font-bold mb-2 text-green-500">Your Account</h2>
+    <div class="border border-green-500 rounded px-4 py-3 mb-4">
+        <h2 class="text-xl font-bold mb-2 text-green-500">Network Management</h2>
+        <div id="network-buttons">
+            <!-- Buttons will be dynamically added here -->
+        </div>
+    </div>
+
+    <div id="account-info" class="border border-green-500 rounded px-4 py-3 mb-4" style="display: none;">
+        <h2 class="text-xl font-bold mb-2 text-green-500">Account Information</h2>
         <p>Address: <span id="account" class="text-yellow-400"></span></p>
         <p>Balance: <span id="balance" class="text-yellow-400"></span> BNB</p>
         <p>Shares: <span id="shares" class="text-yellow-400"></span></p>
-    </div>
-    <div id="fund-info" class="hidden border border-green-500 rounded px-4 py-3 mb-4">
-        <h2 class="text-xl font-bold mb-2 text-green-500">Contract / Fund Information</h2>
         <p>Total Fund Value: <span id="total-fund-value" class="text-yellow-400"></span> BUSD</p>
-        <p>Total Shares: <span id="total-shares" class="text-yellow-400"></span></p>
-        <p>Stablecoin Balance: <span id="stablecoin-balance" class="text-yellow-400"></span> BUSD</p>
     </div>
-    <div id="fund-composition" class="hidden border border-green-500 rounded px-4 py-3 mb-4">
+
+    <div id="fund-composition" class="border border-green-500 rounded px-4 py-3 mb-4" style="display: none;">
         <h2 class="text-xl font-bold mb-2 text-green-500">Fund Composition</h2>
         <div id="composition-details">Loading fund composition...</div>
     </div>
 
-    <!-- User Actions -->
     <div class="border border-green-500 rounded px-4 py-3 mb-4">
         <h2 class="text-xl font-bold mb-2 text-green-500">Deposit</h2>
-        <input type="number" id="deposit-amount" placeholder="Amount in BNB" class="bg-black text-green-400 border border-green-500 rounded w-full py-2 px-3 mb-2 focus:outline-none focus:border-green-700" />
-        <button id="deposit-button" class="bg-green-700 hover:bg-green-600 text-black font-bold py-2 px-4 rounded focus:outline-none">Deposit</button>
+        <input type="number" id="deposit-amount" placeholder="Amount in BNB"
+            class="bg-black text-green-400 border border-green-500 rounded w-full py-2 px-3 mb-2 focus:outline-none focus:border-green-700" />
+        <button onclick="handleDeposit()"
+            class="bg-green-700 hover:bg-green-600 text-black font-bold py-2 px-4 rounded focus:outline-none">
+            Deposit
+        </button>
     </div>
+
     <div class="border border-green-500 rounded px-4 py-3 mb-4">
         <h2 class="text-xl font-bold mb-2 text-green-500">Withdraw</h2>
-        <input type="number" id="withdraw-amount" placeholder="Amount of shares" class="bg-black text-green-400 border border-green-500 rounded w-full py-2 px-3 mb-2 focus:outline-none focus:border-green-700" />
-        <button id="withdraw-button" class="bg-green-700 hover:bg-green-600 text-black font-bold py-2 px-4 rounded focus:outline-none">Withdraw</button>
+        <input type="number" id="withdraw-amount" placeholder="Amount of shares"
+            class="bg-black text-green-400 border border-green-500 rounded w-full py-2 px-3 mb-2 focus:outline-none focus:border-green-700" />
+        <button onclick="handleWithdraw()"
+            class="bg-green-700 hover:bg-green-600 text-black font-bold py-2 px-4 rounded focus:outline-none">
+            Withdraw
+        </button>
     </div>
-
-    <!-- Wallet Connection -->
-    <div id="connect-wallet" class="border border-green-500 rounded px-4 py-3 mb-4">
-        <h2 class="text-xl font-bold mb-2 text-green-500">Connect to MetaMask</h2>
-        <button id="connect-wallet-button" class="bg-green-700 hover:bg-green-600 text-black font-bold py-2 px-4 rounded focus:outline-none">Connect to MetaMask</button>
-    </div>
-    <div id="add-bsc" class="hidden border border-green-500 rounded px-4 py-3 mb-4">
-        <h2 class="text-xl font-bold mb-2 text-green-500">Add BSC to MetaMask</h2>
-        <button id="add-bsc-mainnet-button" class="bg-yellow-700 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded focus:outline-none mr-2">Add BSC Mainnet</button>
-        <button id="add-bsc-testnet-button" class="bg-purple-700 hover:bg-purple-600 text-black font-bold py-2 px-4 rounded focus:outline-none">Add BSC Testnet</button>
-    </div>
-
-    <!-- Admin Functions -->
-    <div id="admin-functions" class="border border-yellow-500 rounded px-4 py-3 mb-4" style="display: none;">
-        <h2 class="text-xl font-bold mb-2 text-yellow-500">Admin Functions</h2>
-
-        <div class="mb-4">
-            <h3 class="font-bold text-yellow-500">Add Supported Token</h3>
-            <input type="text" id="new-token-address" placeholder="New token address"
-                class="bg-black text-yellow-400 border border-yellow-500 rounded w-full py-2 px-3 mb-2 focus:outline-none focus:border-yellow-700" />
-            <button id="add-token-button"
-                class="bg-yellow-700 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded focus:outline-none">
-                Add Token
-            </button>
-        </div>
-
-        <div class="mb-4">
-            <h3 class="font-bold text-yellow-500">Remove Supported Token</h3>
-            <input type="text" id="remove-token-address" placeholder="Token address to remove"
-                class="bg-black text-yellow-400 border border-yellow-500 rounded w-full py-2 px-3 mb-2 focus:outline-none focus:border-yellow-700" />
-            <button id="remove-token-button"
-                class="bg-yellow-700 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded focus:outline-none">
-                Remove Token
-            </button>
-        </div>
-
-        <div class="mb-4">
-            <h3 class="font-bold text-yellow-500">Strategic Swap</h3>
-            <input type="text" id="swap-token-address" placeholder="Token address to swap to"
-                class="bg-black text-yellow-400 border border-yellow-500 rounded w-full py-2 px-3 mb-2 focus:outline-none focus:border-yellow-700" />
-            <input type="number" id="swap-amount" placeholder="Amount of stablecoin to swap"
-                class="bg-black text-yellow-400 border border-yellow-500 rounded w-full py-2 px-3 mb-2 focus:outline-none focus:border-yellow-700" />
-            <input type="number" id="min-amount-out" placeholder="Minimum amount out"
-                class="bg-black text-yellow-400 border border-yellow-500 rounded w-full py-2 px-3 mb-2 focus:outline-none focus:border-yellow-700" />
-            <button id="execute-swap-button"
-                class="bg-yellow-700 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded focus:outline-none">
-                Execute Swap
-            </button>
-        </div>
-
-        <div class="mb-4">
-            <h3 class="font-bold text-yellow-500">Return to Stablecoin</h3>
-            <input type="text" id="return-token-address" placeholder="Token address to return"
-                class="bg-black text-yellow-400 border border-yellow-500 rounded w-full py-2 px-3 mb-2 focus:outline-none focus:border-yellow-700" />
-            <input type="number" id="return-token-amount" placeholder="Amount of token to return"
-                class="bg-black text-yellow-400 border border-yellow-500 rounded w-full py-2 px-3 mb-2 focus:outline-none focus:border-yellow-700" />
-            <input type="number" id="min-stablecoin-out" placeholder="Minimum stablecoin out"
-                class="bg-black text-yellow-400 border border-yellow-500 rounded w-full py-2 px-3 mb-2 focus:outline-none focus:border-yellow-700" />
-            <button id="return-stablecoin-button"
-                class="bg-yellow-700 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded focus:outline-none">
-                Return to Stablecoin
-            </button>
-        </div>
-
-        <div class="mb-4">
-            <h3 class="font-bold text-yellow-500">Collect Fees</h3>
-            <button id="collect-fees-button"
-                class="bg-yellow-700 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded focus:outline-none">
-                Collect Fees
-            </button>
-        </div>
-
-        <div class="mb-4">
-            <h3 class="font-bold text-yellow-500">Withdraw Fees</h3>
-            <button id="withdraw-fees-button"
-                class="bg-yellow-700 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded focus:outline-none">
-                Withdraw Fees
-            </button>
-        </div>
-    </div>
-
 
     <script>
-    // Constants
-    const FUND_CONTRACT_ADDRESS = '0xb329CB0778873281cd2e4611E6305E97002E9e32';
-    const SMART_ENGINE_CONTRACT_ADDRESS = '0x5F820046cA92aFe66A85afd18843A892d2613483';
-    const PANCAKESWAP_ROUTER_ADDRESS = '0xD99D1c33F9fC3444f8101754aBC46c52416550D1';
-    const BUSD_ADDRESS = '0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7';
-    const PANCAKESWAP_ROUTER_ABI = ['function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts)'];
-    
-		const FUND_ABI = [
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "_smartEngine",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "_stablecoin",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "_dexRouter",
-						"type": "address"
-					}
-				],
-				"stateMutability": "nonpayable",
-				"type": "constructor"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "user",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "bnbAmount",
-						"type": "uint256"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "sharesMinted",
-						"type": "uint256"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "fee",
-						"type": "uint256"
-					}
-				],
-				"name": "Deposit",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "FeesWithdrawn",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "tokenIn",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "tokenInAmount",
-						"type": "uint256"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "stablecoinReceived",
-						"type": "uint256"
-					}
-				],
-				"name": "StablecoinReturn",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "tokenOut",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "stablecoinAmount",
-						"type": "uint256"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "tokenOutAmount",
-						"type": "uint256"
-					}
-				],
-				"name": "StrategicSwap",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "token",
-						"type": "address"
-					}
-				],
-				"name": "TokenAdded",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "token",
-						"type": "address"
-					}
-				],
-				"name": "TokenRemoved",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "user",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "bnbAmount",
-						"type": "uint256"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "sharesBurned",
-						"type": "uint256"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "fee",
-						"type": "uint256"
-					}
-				],
-				"name": "Withdrawal",
-				"type": "event"
-			},
-			{
-				"inputs": [],
-				"name": "MINIMUM_DEPOSIT",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"inputs": [],
-				"name": "WBNB",
-				"outputs": [
-					{
-						"internalType": "address",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"inputs": [],
-				"name": "dexRouter",
-				"outputs": [
-					{
-						"internalType": "contract IUniswapV2Router02",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"inputs": [],
-				"name": "freeBUSDBalance",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"name": "shares",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"inputs": [],
-				"name": "smartEngine",
-				"outputs": [
-					{
-						"internalType": "address",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"inputs": [],
-				"name": "stablecoin",
-				"outputs": [
-					{
-						"internalType": "contract IERC20",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"name": "supportedTokens",
-				"outputs": [
-					{
-						"internalType": "address",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"name": "tokenBalances",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"inputs": [],
-				"name": "totalShares",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"stateMutability": "payable",
-				"type": "receive",
-				"payable": true
-			},
-			{
-				"inputs": [],
-				"name": "deposit",
-				"outputs": [],
-				"stateMutability": "payable",
-				"type": "function",
-				"payable": true
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "sharesToBurn",
-						"type": "uint256"
-					}
-				],
-				"name": "withdraw",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "tokenOut",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "stablecoinAmount",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "minAmountOut",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "deadline",
-						"type": "uint256"
-					}
-				],
-				"name": "strategicSwapToToken",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "tokenIn",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "tokenInAmount",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "minStablecoinOut",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "deadline",
-						"type": "uint256"
-					}
-				],
-				"name": "returnToStablecoin",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "token",
-						"type": "address"
-					}
-				],
-				"name": "addSupportedToken",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "token",
-						"type": "address"
-					}
-				],
-				"name": "removeSupportedToken",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "getTotalFundValue",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"inputs": [],
-				"name": "withdrawFees",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			}
-		]
-		const SMART_ENGINE_ABI = [
-			{
-				"inputs": [],
-				"stateMutability": "nonpayable",
-				"type": "constructor"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "owner",
-						"type": "address"
-					}
-				],
-				"name": "OwnableInvalidOwner",
-				"type": "error"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "account",
-						"type": "address"
-					}
-				],
-				"name": "OwnableUnauthorizedAccount",
-				"type": "error"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "amount",
-						"type": "uint256"
-					}
-				],
-				"name": "FeesCollected",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "previousOwner",
-						"type": "address"
-					},
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "newOwner",
-						"type": "address"
-					}
-				],
-				"name": "OwnershipTransferred",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": false,
-						"internalType": "address",
-						"name": "tokenIn",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "tokenInAmount",
-						"type": "uint256"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "stablecoinReceived",
-						"type": "uint256"
-					}
-				],
-				"name": "StablecoinReturnExecuted",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": false,
-						"internalType": "address",
-						"name": "tokenOut",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "stablecoinAmount",
-						"type": "uint256"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "tokenOutAmount",
-						"type": "uint256"
-					}
-				],
-				"name": "StrategicSwapExecuted",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": false,
-						"internalType": "address",
-						"name": "token",
-						"type": "address"
-					}
-				],
-				"name": "SupportedTokenAdded",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": false,
-						"internalType": "address",
-						"name": "token",
-						"type": "address"
-					}
-				],
-				"name": "SupportedTokenRemoved",
-				"type": "event"
-			},
-			{
-				"inputs": [],
-				"name": "fund",
-				"outputs": [
-					{
-						"internalType": "contract USDDenominatedFundV10",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"inputs": [],
-				"name": "owner",
-				"outputs": [
-					{
-						"internalType": "address",
-						"name": "",
-						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			},
-			{
-				"inputs": [],
-				"name": "renounceOwnership",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "newOwner",
-						"type": "address"
-					}
-				],
-				"name": "transferOwnership",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"stateMutability": "payable",
-				"type": "receive",
-				"payable": true
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address payable",
-						"name": "_fund",
-						"type": "address"
-					}
-				],
-				"name": "setFund",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "executeFeeCollection",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "tokenOut",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "stablecoinAmount",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "minAmountOut",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "deadline",
-						"type": "uint256"
-					}
-				],
-				"name": "executeStrategicSwap",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "tokenIn",
-						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "tokenInAmount",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "minStablecoinOut",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "deadline",
-						"type": "uint256"
-					}
-				],
-				"name": "executeStablecoinReturn",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "token",
-						"type": "address"
-					}
-				],
-				"name": "addSupportedToken",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "token",
-						"type": "address"
-					}
-				],
-				"name": "removeSupportedToken",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "withdrawFees",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "getFundComposition",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "totalValue",
-						"type": "uint256"
-					},
-					{
-						"internalType": "uint256",
-						"name": "stablecoinBalance",
-						"type": "uint256"
-					},
-					{
-						"internalType": "address[]",
-						"name": "tokens",
-						"type": "address[]"
-					},
-					{
-						"internalType": "uint256[]",
-						"name": "balances",
-						"type": "uint256[]"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function",
-				"constant": true
-			}
-		]
-		
-    // Global variables
-    let provider, signer, fundContract, smartEngineContract, account;
+        const BSC_MAINNET_CHAIN_ID = '0x38';
+        const BSC_TESTNET_CHAIN_ID = '0x61';
 
-    // Helper functions
-    const setError = (message) => {
-        const errorElement = document.getElementById('error');
-        const errorMessageElement = document.getElementById('error-message');
-        errorElement.classList.remove('hidden');
-        errorMessageElement.textContent = message;
-    };
+        const CONTRACT_ADDRESSES = {
+            [BSC_MAINNET_CHAIN_ID]: {
+                FUND_CONTRACT: '',
+                BUSD: '',
+                PANCAKESWAP_ROUTER: ''
+            },
+            [BSC_TESTNET_CHAIN_ID]: {
+                FUND_CONTRACT: '0xF0beB182f6faD829F983D5F72d3DBDbA5A45623c',
+                BUSD: '0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7',
+                PANCAKESWAP_ROUTER: '0xD99D1c33F9fC3444f8101754aBC46c52416550D1'
+            }
+        };
 
-    function toggleElementVisibility(id, show) {
-    const element = document.getElementById(id);
-    if (element) {
-        element.style.display = show ? 'block' : 'none';
-    }
-}
+        let provider, signer, fundContract, account, currentChainId;
 
+        const FUND_ABI = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_smartEngine",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "_stablecoin",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "_dexRouter",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "bnbAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "sharesMinted",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "fee",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "Deposit",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "FeesWithdrawn",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "tokenIn",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "tokenInAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "stablecoinReceived",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "StablecoinReturn",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "tokenOut",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "stablecoinAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "tokenOutAmount",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "StrategicSwap",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "token",
+                        "type": "address"
+                    }
+                ],
+                "name": "TokenAdded",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "token",
+                        "type": "address"
+                    }
+                ],
+                "name": "TokenRemoved",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "bnbAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "sharesBurned",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "fee",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "Withdrawal",
+                "type": "event"
+            },
+            {
+                "inputs": [],
+                "name": "MINIMUM_DEPOSIT",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "WBNB",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "token",
+                        "type": "address"
+                    }
+                ],
+                "name": "addSupportedToken",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "deposit",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "dexRouter",
+                "outputs": [
+                    {
+                        "internalType": "contract IUniswapV2Router02",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "freeBUSDBalance",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getTotalFundValue",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "token",
+                        "type": "address"
+                    }
+                ],
+                "name": "removeSupportedToken",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "tokenIn",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "tokenInAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "minStablecoinOut",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "deadline",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "returnToStablecoin",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "name": "shares",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "smartEngine",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "stablecoin",
+                "outputs": [
+                    {
+                        "internalType": "contract IERC20",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "tokenOut",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "stablecoinAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "minAmountOut",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "deadline",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "strategicSwapToToken",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "supportedTokens",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "name": "tokenBalances",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "totalShares",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "sharesToBurn",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "withdraw",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "withdrawFees",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "stateMutability": "payable",
+                "type": "receive"
+            }
+        ];
 
-    // Main functions
-    async function init() {
-    toggleElementVisibility('server-warning', window.location.protocol === 'file:');
-    if (window.location.protocol === 'file:') {
-        setError('Please access this file through a web server to use MetaMask.');
-        return;
-    }
+        const PANCAKESWAP_ROUTER_ABI = ['function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts)'];
 
-    if (typeof window.ethereum === 'undefined') {
-        setError('Please install MetaMask to use this dApp');
-        return;
-    }
-
-    try {
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        fundContract = new ethers.Contract(FUND_CONTRACT_ADDRESS, FUND_ABI, signer);
-        smartEngineContract = new ethers.Contract(SMART_ENGINE_CONTRACT_ADDRESS, SMART_ENGINE_ABI, signer);
-        account = await signer.getAddress();
-
-        document.getElementById('account').textContent = account;
-        toggleElementVisibility('account-info', true);
-        toggleElementVisibility('fund-info', true);
-        toggleElementVisibility('fund-composition', true);
-        toggleElementVisibility('connect-wallet', false);
-        toggleElementVisibility('add-bsc', true);
-        toggleElementVisibility('admin-functions', false);
-        // Check if the current account is the owner
-        const owner = await smartEngineContract.owner();
-       
-        if (owner.toLowerCase() === account.toLowerCase()) {
-            console.log(account,owner)
-            toggleElementVisibility('admin-functions', true);
-        } else {
-            console.warn('The current account is not the owner.');
+        function setError(message) {
+            const errorElement = document.getElementById('error');
+            const errorMessageElement = document.getElementById('error-message');
+            if (errorElement && errorMessageElement) {
+                errorElement.style.display = 'block';
+                errorMessageElement.textContent = message;
+            } else {
+                console.error('Error element not found in DOM');
+                console.error(message);
+            }
         }
 
-        await updateBalances();
-        await getFundComposition();
-    } catch (err) {
-        setError('Failed to connect to MetaMask: ' + err.message);
-    }
-}
-
-    async function updateBalances() {
-        if (!provider || !fundContract || !account) return;
-
-        try {
-            const [balance, shares, totalShares, totalFundValue, stablecoinBalance] = await Promise.all([
-                provider.getBalance(account),
-                fundContract.shares(account),
-                fundContract.totalShares(),
-                fundContract.getTotalFundValue(),
-                fundContract.freeBUSDBalance()
-            ]);
-
-            document.getElementById('balance').textContent = ethers.utils.formatEther(balance);
-            document.getElementById('shares').textContent = ethers.utils.formatUnits(shares, 18);
-            document.getElementById('total-shares').textContent = ethers.utils.formatUnits(totalShares, 18);
-            document.getElementById('total-fund-value').textContent = ethers.utils.formatUnits(totalFundValue, 18);
-            document.getElementById('stablecoin-balance').textContent = ethers.utils.formatUnits(stablecoinBalance, 18);
-        } catch (err) {
-            setError('Failed to update balances: ' + err.message);
+        function clearError() {
+            const errorElement = document.getElementById('error');
+            if (errorElement) {
+                errorElement.style.display = 'none';
+            }
         }
-    }
-    async function getFundComposition() {
-    if (!fundContract || !provider) {
-        setError('Contract or provider not initialized');
-        return;
-    }
 
-    try {
-        const tokens = [];
-        const balances = [];
-        const busdValues = [];
-        const tokenNames = [];
+        function showElement(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.style.display = 'block';
+            }
+        }
 
-        for (let i = 0; ; i++) {
+        function hideElement(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.style.display = 'none';
+            }
+        }
+
+        async function checkAndDisplayNetworkButtons() {
+            // 
+            const networkButtons = document.getElementById('network-buttons');
+            networkButtons.innerHTML = ''; // Clear existing buttons
+
+            currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+            if (currentChainId !== BSC_MAINNET_CHAIN_ID) {
+                const mainnetButton = createButton('Switch to BSC Mainnet', () => switchNetwork(BSC_MAINNET_CHAIN_ID), 'bg-yellow-700 hover:bg-yellow-600');
+                networkButtons.appendChild(mainnetButton);
+            }
+
+            if (currentChainId !== BSC_TESTNET_CHAIN_ID) {
+                const testnetButton = createButton('Switch to BSC Testnet', () => switchNetwork(BSC_TESTNET_CHAIN_ID), 'bg-purple-700 hover:bg-purple-600');
+                networkButtons.appendChild(testnetButton);
+            }
+        }
+
+        function createButton(text, onClick, className) {
+            const button = document.createElement('button');
+            button.textContent = text;
+            button.onclick = onClick;
+            button.className = `${className} text-black font-bold py-2 px-4 rounded focus:outline-none mr-2 mb-2`;
+            return button;
+        }
+
+        async function switchNetwork(chainId) {
             try {
-                const token = await fundContract.supportedTokens(i);
-                if (token === ethers.constants.AddressZero) break;
-
-                let balance;
-                let busdValue;
-                const tokenContract = new ethers.Contract(token, ['function name() view returns (string)'], provider);
-                const tokenName = await tokenContract.name();
-
-                if (token.toLowerCase() === BUSD_ADDRESS.toLowerCase()) {
-                    // Special handling for BUSD
-                    balance = await fundContract.freeBUSDBalance();
-                    busdValue = ethers.utils.formatUnits(balance, 18);
-                } else {
-                    balance = await fundContract.tokenBalances(token);
-                    const formattedBalance = ethers.utils.formatUnits(balance, 18);
-                    busdValue = await calculateStablecoinAmountForToken(formattedBalance, token);
-                }
-
-                tokens.push(token);
-                balances.push(parseFloat(ethers.utils.formatUnits(balance, 18)).toFixed(2)); // Format the balance to two decimal places
-                busdValues.push(parseFloat(busdValue).toFixed(2)); // Format the BUSD value to two decimal places
-                tokenNames.push(tokenName);
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: chainId }],
+                });
             } catch (error) {
-                console.log(`No more tokens found at index ${i}.`);
-                break;
+                if (error.code === 4902) {
+                    // This error code indicates that the chain has not been added to MetaMask
+                    setError(`Network is not available in MetaMask.\nAdd ${chainId} First`);
+                    const networkButtons = document.getElementById('network-buttons');
+                    networkButtons.innerHTML = ''; // Clear existing buttons
+                    if (chainId == BSC_MAINNET_CHAIN_ID) {
+                        const mainnetButton = createButton('Add BSC Mainnet', () => addNetwork(BSC_MAINNET_CHAIN_ID), 'bg-yellow-700 hover:bg-yellow-600');
+                        networkButtons.appendChild(mainnetButton);
+                    }
+
+                    if (chainId == BSC_TESTNET_CHAIN_ID) {
+                        const testnetButton = createButton('Add  BSC Testnet', () => addNetwork(BSC_TESTNET_CHAIN_ID), 'bg-purple-700 hover:bg-purple-600');
+                        networkButtons.appendChild(testnetButton);
+                    }
+                    // await addNetwork(chainId);
+                } else {
+                    throw error;
+                }
             }
         }
 
-        const compositionHtml = `
-            <h3 class="font-bold mt-2 text-green-500">Token Balances:</h3>
-            ${tokens
-                .map((token, index) => `
-                    <p>
-                        <span class="text-blue-400">${token}</span> 
-                        <span class="text-yellow-400">${balances[index]}</span> tokens 
-                        (≈ <span class="text-yellow-400">${busdValues[index]}</span> BUSD)
-                        <span class="text-blue-400">${tokenNames[index]}</span> 
-                    </p>
-                `).join('')}
-        `;
-
-        document.getElementById('composition-details').innerHTML = compositionHtml;
-    } catch (err) {
-        setError('Failed to get fund composition: ' + err.message);
-    }
-}
-
-
-    // Event handlers
-    async function handleDeposit() {
-        if (!fundContract) return;
-        try {
-            const depositAmount = document.getElementById('deposit-amount').value;
-            const tx = await fundContract.deposit({ value: ethers.utils.parseEther(depositAmount) });
-            await tx.wait();
-            updateBalances();
-            getFundComposition();
-            document.getElementById('deposit-amount').value = '';
-        } catch (err) {
-            setError('Deposit failed: ' + err.message);
-        }
-    }
-
-    async function handleWithdraw() {
-        if (!fundContract) return;
-        try {
-            const withdrawAmount = document.getElementById('withdraw-amount').value;
-            const tx = await fundContract.withdraw(ethers.utils.parseUnits(withdrawAmount, 18));
-            await tx.wait();
-            updateBalances();
-            getFundComposition();
-            document.getElementById('withdraw-amount').value = '';
-        } catch (err) {
-            setError('Withdrawal failed: ' + err.message);
-        }
-    }
-
-    // Utility functions
-    async function calculateStablecoinAmountForToken(tokenAmount, tokenAddress) {
-        if (!provider || !fundContract || !account) return 0;
-
-        const MINIMUM_INPUT_AMOUNT = ethers.utils.parseUnits('0.001', 18);
-
-        try {
-            const amountIn = ethers.utils.parseUnits(tokenAmount, 18);
-            if (amountIn.lt(MINIMUM_INPUT_AMOUNT)) {
-                console.warn('Token amount is below the minimum threshold for a reliable swap calculation.');
-                return 0;
-            }
-
-            const pancakeSwapRouter = new ethers.Contract(PANCAKESWAP_ROUTER_ADDRESS, PANCAKESWAP_ROUTER_ABI, provider);
-            const amountsOut = await pancakeSwapRouter.getAmountsOut(amountIn, [tokenAddress, BUSD_ADDRESS]);
-            return parseFloat(ethers.utils.formatUnits(amountsOut[1], 18));
-        } catch (err) {
-            console.error('Error in calculateStablecoinAmountForToken:', err);
-            setError('Failed to calculate stablecoin amount: ' + (err.data?.message || err.message));
-            return 0;
-        }
-    }
-
-    // Setup
-    function addEventListeners() {
-    // Wallet and BSC Network
-    document.getElementById('connect-wallet-button').addEventListener('click', init);
-    document.getElementById('add-bsc-mainnet-button').addEventListener('click', () => addBscNetwork('mainnet'));
-    document.getElementById('add-bsc-testnet-button').addEventListener('click', () => addBscNetwork('testnet'));
-
-    // User Actions
-    document.getElementById('deposit-button').addEventListener('click', handleDeposit);
-    document.getElementById('withdraw-button').addEventListener('click', handleWithdraw);
-
-    // Admin Functions
-    document.getElementById('add-token-button').addEventListener('click', addSupportedToken);
-    document.getElementById('remove-token-button').addEventListener('click', removeSupportedToken);
-    document.getElementById('execute-swap-button').addEventListener('click', executeStrategicSwap);
-    document.getElementById('return-stablecoin-button').addEventListener('click', returnToStablecoin);
-    document.getElementById('collect-fees-button').addEventListener('click', collectFees);
-    document.getElementById('withdraw-fees-button').addEventListener('click', withdrawFees);
-
-    // Input change event listeners for real-time calculations
-    document.getElementById('swap-amount').addEventListener('input', () => {
-        const stablecoinAmount = document.getElementById('swap-amount').value;
-        const swapTokenAddress = document.getElementById('swap-token-address').value;
-        if (stablecoinAmount && swapTokenAddress) {
-            calculateTokenAmountForStablecoin(stablecoinAmount, swapTokenAddress, 'min-amount-out');
-        } else {
-            document.getElementById('min-amount-out').value = '';
-        }
-    });
-
-    document.getElementById('return-token-amount').addEventListener('input', () => {
-        const tokenAmount = document.getElementById('return-token-amount').value;
-        const returnTokenAddress = document.getElementById('return-token-address').value;
-        if (tokenAmount && returnTokenAddress) {
-            calculateStablecoinAmountForToken(tokenAmount, returnTokenAddress, 'min-stablecoin-out');
-        } else {
-            document.getElementById('min-stablecoin-out').value = '';
-        }
-    });
-}
-
-    // BSC network setup
-    async function addBscNetwork(type) {
-        try {
-            const networkParams = type === 'mainnet' ? {
-                chainId: '0x38',
-                chainName: 'BNB Smart Chain Mainnet',
-                nativeCurrency: {
-                    name: 'BNB Chain Native Token',
-                    symbol: 'BNB',
-                    decimals: 18
-                },
-                rpcUrls: ['https://bsc-dataseed1.bnbchain.org'],
-                blockExplorerUrls: ['https://bscscan.com']
-            } : {
-                chainId: '0x61',
-                chainName: 'BNB Smart Chain Testnet',
-                nativeCurrency: {
-                    name: 'BNB Chain Native Token',
-                    symbol: 'tBNB',
-                    decimals: 18
-                },
-                rpcUrls: ['https://data-seed-prebsc-1-s1.bnbchain.org:8545'],
-                blockExplorerUrls: ['https://testnet.bscscan.com']
-            };
+        async function addNetwork(chainId) {
+            const network = chainId === BSC_MAINNET_CHAIN_ID
+                ? {
+                    chainId: BSC_MAINNET_CHAIN_ID,
+                    chainName: 'Binance Smart Chain Mainnet',
+                    nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 },
+                    rpcUrls: ['https://bsc-dataseed1.binance.org/'],
+                    blockExplorerUrls: ['https://bscscan.com/'],
+                }
+                : {
+                    chainId: BSC_TESTNET_CHAIN_ID,
+                    chainName: 'Binance Smart Chain Testnet',
+                    nativeCurrency: { name: 'BNB', symbol: 'tBNB', decimals: 18 },
+                    rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+                    blockExplorerUrls: ['https://testnet.bscscan.com'],
+                };
 
             await window.ethereum.request({
                 method: 'wallet_addEthereumChain',
-                params: [networkParams]
+                params: [network],
             });
-        } catch (error) {
-            console.error('Failed to add BSC network:', error);
-            setError('Failed to add BSC network: ' + error.message);
         }
-    }
 
-    // Admin functions
-    async function addSupportedToken() {
-        if (!smartEngineContract) return;
-        try {
-            const newTokenAddress = document.getElementById('new-token-address').value;
-            const tx = await smartEngineContract.addSupportedToken(newTokenAddress);
-            await tx.wait();
-            getFundComposition();
-            document.getElementById('new-token-address').value = '';
-        } catch (err) {
-            setError('Failed to add token: ' + err.message);
+
+        async function updateNetworkInfo() {
+            const contractAddressElement = document.getElementById('contract-address');
+            const networkTypeElement = document.getElementById('network-type');
+
+            currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+            const addresses = CONTRACT_ADDRESSES[currentChainId];
+
+            if (addresses) {
+                contractAddressElement.textContent = `Contract: ${addresses.FUND_CONTRACT}`;
+                networkTypeElement.textContent = currentChainId === BSC_MAINNET_CHAIN_ID ? 'Network: BSC Mainnet' : 'Network: BSC Testnet';
+            } else {
+                contractAddressElement.textContent = 'Contract: Unknown network';
+                networkTypeElement.textContent = 'Network: Unsupported';
+            }
         }
-    }
 
-    async function removeSupportedToken() {
-        if (!smartEngineContract) return;
-        try {
-            const removeTokenAddress = document.getElementById('remove-token-address').value;
-            const tx = await smartEngineContract.removeSupportedToken(removeTokenAddress);
-            await tx.wait();
-            getFundComposition();
-            document.getElementById('remove-token-address').value = '';
-        } catch (err) {
-            setError('Failed to remove token: ' + err.message);
+        async function initializeApp() {
+            try {
+                clearError();
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+
+                currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+                if (currentChainId !== BSC_MAINNET_CHAIN_ID && currentChainId !== BSC_TESTNET_CHAIN_ID) {
+                    throw new Error('Unsupported network. Please switch to BSC Mainnet or Testnet.');
+                }
+
+                const addresses = CONTRACT_ADDRESSES[currentChainId];
+
+                fundContract = new ethers.Contract(addresses.FUND_CONTRACT, FUND_ABI, signer);
+
+                account = await signer.getAddress();
+                const accountElement = document.getElementById('account');
+                if (accountElement) {
+                    accountElement.textContent = account;
+                }
+
+                showElement('account-info');
+                showElement('fund-composition');
+
+                await updateBalances();
+                await getFundComposition();
+                await checkAndDisplayNetworkButtons();
+                await updateNetworkInfo();
+            } catch (err) {
+                if (err.message.includes('Unsupported network')) {
+                    setError('Unsupported network. Please switch to BSC Mainnet or Testnet.');
+                    checkAndDisplayNetworkButtons()
+                } else if (err.code === 4001) {
+                    setError('Please connect MetaMask to use this dApp.');
+                } else {
+                    setError('Failed to initialize app: ' + err.message);
+                }
+            }
         }
-    }
 
-    async function executeStrategicSwap() {
-        if (!smartEngineContract) return;
-        try {
-            const swapTokenAddress = document.getElementById('swap-token-address').value;
-            const swapAmount = document.getElementById('swap-amount').value;
-            const minAmountOut = document.getElementById('min-amount-out').value;
-            const tx = await smartEngineContract.executeStrategicSwap(
-                swapTokenAddress,
-                ethers.utils.parseUnits(swapAmount, 18),
-                ethers.utils.parseUnits(minAmountOut, 18),
-                Math.floor(Date.now() / 1000) + 600 // 10 minutes deadline
-            );
-            await tx.wait();
-            getFundComposition();
-            document.getElementById('swap-token-address').value = '';
-            document.getElementById('swap-amount').value = '';
-            document.getElementById('min-amount-out').value = '';
-        } catch (err) {
-            setError('Strategic swap failed: ' + err.message);
+        async function updateBalances() {
+            if (!provider || !fundContract || !account) return;
+
+            try {
+                const balance = await provider.getBalance(account);
+                const shares = await fundContract.shares(account);
+                const totalFundValue = await fundContract.getTotalFundValue();
+
+                document.getElementById('balance').textContent = ethers.utils.formatEther(balance);
+                document.getElementById('shares').textContent = ethers.utils.formatUnits(shares, 18);
+                document.getElementById('total-fund-value').textContent = ethers.utils.formatUnits(totalFundValue, 18);
+            } catch (err) {
+                setError('Failed to update balances: ' + err.message);
+            }
         }
-    }
 
-    async function returnToStablecoin() {
-        if (!smartEngineContract) return;
-        try {
-            const returnTokenAddress = document.getElementById('return-token-address').value;
-            const returnTokenAmount = document.getElementById('return-token-amount').value;
-            const minStablecoinOut = document.getElementById('min-stablecoin-out').value;
-            const tx = await smartEngineContract.executeStablecoinReturn(
-                returnTokenAddress,
-                ethers.utils.parseUnits(returnTokenAmount, 18),
-                ethers.utils.parseUnits(minStablecoinOut, 18),
-                Math.floor(Date.now() / 1000) + 600 // 10 minutes deadline
-            );
-            await tx.wait();
-            getFundComposition();
-            document.getElementById('return-token-address').value = '';
-            document.getElementById('return-token-amount').value = '';
-            document.getElementById('min-stablecoin-out').value = '';
-        } catch (err) {
-            setError('Return to stablecoin failed: ' + err.message);
+        async function getFundComposition() {
+            if (!fundContract || !provider) {
+                setError('Contract or provider not initialized');
+                return;
+            }
+
+            try {
+                const addresses = CONTRACT_ADDRESSES[currentChainId];
+
+                const totalValue = await fundContract.getTotalFundValue();
+                const stablecoinBalance = await fundContract.freeBUSDBalance();
+
+                const pancakeSwapRouter = new ethers.Contract(addresses.PANCAKESWAP_ROUTER, PANCAKESWAP_ROUTER_ABI, provider);
+
+                let tokens = [];
+                let balances = [];
+                let busdValues = [];
+                let i = 0;
+
+                while (true) {
+                    try {
+                        const token = await fundContract.supportedTokens(i);
+                        if (token === ethers.constants.AddressZero) {
+                            break;
+                        }
+
+                        const balance = await fundContract.tokenBalances(token);
+                        const formattedBalance = ethers.utils.formatUnits(balance, 18);
+
+                        let busdValue;
+                        if (token.toLowerCase() === addresses.BUSD.toLowerCase()) {
+                            busdValue = parseFloat(formattedBalance);
+                        } else {
+                            const amounts = await pancakeSwapRouter.getAmountsOut(
+                                ethers.utils.parseUnits('1', 18),
+                                [token, addresses.BUSD]);
+                            const tokenPriceInBUSD = ethers.utils.formatUnits(amounts[1], 18);
+                            busdValue = parseFloat(formattedBalance) * parseFloat(tokenPriceInBUSD);
+                        }
+
+                        tokens.push(token);
+                        balances.push(formattedBalance);
+                        busdValues.push(busdValue.toFixed(2));
+
+                        i++;
+                    } catch (error) {
+                        console.log(`Error fetching token at index ${i}:`, error.message);
+                        console.log(`IT'S NOT A BUG, IT'S A FEATURE`);
+                        break;
+                    }
+                }
+
+                const compositionHtml = `
+                    <p>Total Fund Value: <span class="text-yellow-400">${ethers.utils.formatUnits(totalValue, 18)}</span> BUSD</p>
+                    <p>Stablecoin Balance: <span class="text-yellow-400">${ethers.utils.formatUnits(stablecoinBalance, 18)}</span> BUSD</p>
+                    <h3 class="font-bold mt-2 text-green-500">Token Balances:</h3>
+                    ${tokens
+                        .filter(token => token.toLowerCase() !== addresses.BUSD.toLowerCase())
+                        .map((token, index) => {
+                            const originalIndex = tokens.indexOf(token);
+                            return `
+                                <p>
+                                    <span class="text-blue-400">${token}:</span> 
+                                    <span class="text-yellow-400">${balances[originalIndex]}</span> tokens 
+                                    (≈ <span class="text-yellow-400">${busdValues[originalIndex]}</span> BUSD)
+                                </p>
+                            `;
+                        }).join('')}
+                `;
+
+                document.getElementById('composition-details').innerHTML = compositionHtml;
+            } catch (err) {
+                setError('MAINNET NOT YET AVAILABLE');
+            }
         }
-    }
 
-    async function collectFees() {
-        if (!smartEngineContract) return;
-        try {
-            const tx = await smartEngineContract.executeFeeCollection();
-            await tx.wait();
-            getFundComposition();
-        } catch (err) {
-            setError('Fee collection failed: ' + err.message);
+        async function handleDeposit() {
+            if (!fundContract) return;
+            try {
+                clearError();
+                const depositAmount = document.getElementById('deposit-amount').value;
+                const tx = await fundContract.deposit({ value: ethers.utils.parseEther(depositAmount) });
+                await tx.wait();
+                updateBalances();
+                getFundComposition();
+                document.getElementById('deposit-amount').value = '';
+            } catch (err) {
+                setError('Deposit failed: ' + err.message);
+            }
         }
-    }
 
-    async function withdrawFees() {
-        if (!smartEngineContract) return;
-        try {
-            const tx = await smartEngineContract.withdrawFees();
-            await tx.wait();
-            updateBalances();
-            getFundComposition();
-        } catch (err) {
-            setError('Fee withdrawal failed: ' + err.message);
+        async function handleWithdraw() {
+            if (!fundContract) return;
+            try {
+                clearError();
+                const withdrawAmount = document.getElementById('withdraw-amount').value;
+                const tx = await fundContract.withdraw(ethers.utils.parseUnits(withdrawAmount, 18));
+                await tx.wait();
+                updateBalances();
+                getFundComposition();
+                document.getElementById('withdraw-amount').value = '';
+            } catch (err) {
+                setError('Withdrawal failed: ' + err.message);
+            }
         }
-    }
 
-    // On page load
-    
-    window.onload = () => {
-        addEventListeners();
-        toggleElementVisibility('account-info', false);
-        toggleElementVisibility('fund-info', false);
-        toggleElementVisibility('fund-composition', false);
-        toggleElementVisibility('admin-functions', false);
-    };
+        async function init() {
+            if (window.location.protocol === 'file:') {
+                showElement('server-warning');
+                setError('Please access this file through a web server to use MetaMask.');
+                return;
+            } else {
+                hideElement('server-warning');
+            }
+
+            if (typeof window.ethereum !== 'undefined') {
+                console.log("MetaMask is installed!");
+
+                if (window.ethereum.isMetaMask) {
+                    console.log("MetaMask is active");
+
+                    await initializeApp();
+
+                    // Listen for account changes
+                    window.ethereum.on('accountsChanged', async (accounts) => {
+                        console.log('Account changed:', accounts[0]);
+                        await initializeApp();
+                    });
+
+                    // Listen for chain changes
+                    window.ethereum.on('chainChanged', async (chainId) => {
+                        console.log('Network changed. Updating...');
+                        await initializeApp();
+                    });
+
+                } else {
+                    setError('MetaMask is installed but not active. Please make sure it\'s enabled.');
+                }
+            } else {
+                setError('Please install MetaMask to use this dApp');
+            }
+        }
+
+        window.onload = init;
     </script>
 </body>
+
 </html>
