@@ -1081,11 +1081,13 @@
                 const balances = [];
                 const busdValues = [];
                 const tokenNames = [];
-
+                const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
                 for (let i = 0; ; i++) {
                     try {
                         const token = await fundContract.supportedTokens(i);
-                        if (token === ethers.ZeroAddress) break;
+                        
+
+                        if (token === ZERO_ADDRESS) break;
 
                         let balance, busdValue;
                         const tokenContract = new ethers.Contract(token, ['function name() view returns (string)'], provider);
