@@ -976,7 +976,7 @@
     // Global variables
     let provider, signer, fundContract, smartEngineContract, account;
     let currentAddresses = null; // will hold the addresses for the current network
-    let currentShares = 0;
+    let currentSharesStr = "0";
 
     // Helper function to show error messages
     function setError(message) {
@@ -1146,7 +1146,7 @@
         document.getElementById('total-fund-value').textContent = ethers.utils.formatUnits(totalFundValue, 18);
 
         // Update global currentShares variable for withdrawal calculations.
-        currentShares = parseFloat(formattedShares);
+        currentSharesStr = formattedShares;
       } catch (err) {
         setError('Failed to update balances: ' + err.message);
       }
@@ -1271,14 +1271,20 @@
     }
     // / New helper function to set the withdrawal amount based on a percentage
     function setWithdrawalPercentage(percentage) {
-      if (currentShares === 0) {
-        setError('No stakes available for withdrawal.');
-        return;
-      }
-      const amount = currentShares * percentage;
-      // Set the input field with a fixed number of decimals (adjust as needed)
-      document.getElementById('withdraw-amount').value = amount.toFixed(6);
+    // percentage should be 0.25, 0.5, 0.75, or 1
+    if (!currentSharesStr || currentSharesStr === "0") {
+      setError('No stakes available for withdrawal.');
+      return;
     }
+    // Convert the full-precision string back to a BigNumber.
+    const sharesBN = ethers.utils.parseUnits(currentSharesStr, 18);
+    // Multiply by the percentage in integer math.
+    // For example, if percentage = 0.25 then percInt = 25.
+    const percInt = Math.round(percentage * 100); // 25, 50, 75, or 100
+    const withdrawalBN = sharesBN.mul(percInt).div(100);
+    // Format the result back to a decimal string.
+    document.getElementById('withdraw-amount').value = ethers.utils.formatUnits(withdrawalBN, 18);
+  }
     async function addSupportedToken() {
       if (!smartEngineContract) return;
       try {
