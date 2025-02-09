@@ -729,85 +729,64 @@
         }
 
         async function getFundComposition() {
-            if (!fundContract || !provider) {
-                setError('Contract or provider not initialized');
-                return;
-            }
+			if (!fundContract || !provider) {
+				setError('Contract or provider not initialized');
+				return;
+			}
 
-            try {
-                const addresses = CONTRACT_ADDRESSES[currentChainId];
+			try {
+				const tokens = [];
+				const balances = [];
+				const busdValues = [];
+				const tokenNames = [];
 
-                const totalValue = await fundContract.getTotalFundValue();
-                const stablecoinBalance = await fundContract.freeBUSDBalance();
+				for (let i = 0; ; i++) {
+					try {
+						const token = await fundContract.supportedTokens(i);
+						if (token === ethers.constants.AddressZero) break;
 
-                const pancakeSwapRouter = new ethers.Contract(addresses.PANCAKESWAP_ROUTER, PANCAKESWAP_ROUTER_ABI, provider);
+						let balance;
+						let busdValue;
+						const tokenContract = new ethers.Contract(token, ['function name() view returns (string)'], provider);
+						const tokenName = await tokenContract.name();
 
-                let tokens = [];
-                let balances = [];
-                let busdValues = [];
-		let tokenNames = [];
-                let i = 0;
+						if (token.toLowerCase() === BUSD_ADDRESS.toLowerCase()) {
+							balance = await fundContract.freeBUSDBalance();
+							busdValue = ethers.utils.formatUnits(balance, 18);
+						} else {
+							balance = await fundContract.tokenBalances(token);
+							const formattedBalance = ethers.utils.formatUnits(balance, 18);
+							busdValue = await calculateStablecoinAmountForToken(formattedBalance, token);
+						}
 
-                while (true) {
-                    try {
-                        const token = await fundContract.supportedTokens(i);
-                        if (token === ethers.constants.AddressZero) {
-                            break;
-                        }
+						tokens.push(token);
+						balances.push(ethers.utils.formatUnits(balance, 18));
+						busdValues.push(parseFloat(busdValue).toFixed(2));
+						tokenNames.push(tokenName);
+					} catch (error) {
+						console.log(`No more tokens found at index ${i}.`);
+						break;
+					}
+				}
 
-                        const balance = await fundContract.tokenBalances(token);
-                        const formattedBalance = ethers.utils.formatUnits(balance, 18);
+				const compositionHtml = `
+                <h3 class="font-bold mt-2 text-green-500">Token Balances:</h3>
+                ${tokens
+						.map((token, index) => `
+                        <p>
+                            <span class="text-blue-400">${token}</span> 
+                            <span class="text-yellow-400">${balances[index]}</span> tokens 
+                            (≈ <span class="text-yellow-400">${busdValues[index]}</span> BUSD)
+                            <span class="text-blue-400">${tokenNames[index]}</span> 
+                        </p>
+                    `).join('')}
+            `;
 
-                        let busdValue;
-			const tokenContract = new ethers.Contract(token, ['function name() view returns (string)'], provider);
-                	const tokenName = await tokenContract.name();
-			    
-                        if (token.toLowerCase() === addresses.BUSD.toLowerCase()) {
-                            busdValue = parseFloat(formattedBalance);
-                        } else {
-                            const amounts = await pancakeSwapRouter.getAmountsOut(
-                                ethers.utils.parseUnits('1', 18),
-                                [token, addresses.BUSD]);
-                            const tokenPriceInBUSD = ethers.utils.formatUnits(amounts[1], 18);
-                            busdValue = parseFloat(formattedBalance) * parseFloat(tokenPriceInBUSD);
-                        }
-
-                        tokens.push(token);
-                        balances.push(formattedBalance);
-                        busdValues.push(busdValue.toFixed(2));
-			tokenNames.push(tokenName);
-                        i++;
-                    } catch (error) {
-                        console.log(`Error fetching token at index ${i}:`, error.message);
-                        console.log(`IT'S NOT A BUG, IT'S A FEATURE`);
-                        break;
-                    }
-                }
-
-                const compositionHtml = `
-                    <p>Total Fund Value: <span class="text-yellow-400">${ethers.utils.formatUnits(totalValue, 18)}</span> BUSD</p>
-                    <p>Stablecoin Balance: <span class="text-yellow-400">${ethers.utils.formatUnits(stablecoinBalance, 18)}</span> BUSD</p>
-                    <h3 class="font-bold mt-2 text-green-500">Token Balances:</h3>
-                    ${tokens
-                        .filter(token => token.toLowerCase() !== addresses.BUSD.toLowerCase())
-                        .map((token, index) => {
-                            const originalIndex = tokens.indexOf(token);
-                            return `
-                               <p>
-                        <span class="text-blue-400">${token}</span> 
-                        <span class="text-yellow-400">${balances[index]}</span> tokens 
-                        (≈ <span class="text-yellow-400">${busdValues[index]}</span> BUSD)
-                        <span class="text-blue-400">${tokenNames[index]}</span> 
-                    </p>
-                            `;
-                        }).join('')}
-                `;
-
-                document.getElementById('composition-details').innerHTML = compositionHtml;
-            } catch (err) {
-                setError('MAINNET NOT YET AVAILABLE');
-            }
-        }
+				document.getElementById('composition-details').innerHTML = compositionHtml;
+			} catch (err) {
+				setError('MAINNET NOT YET AVAILABLE');
+			}
+		}
 
         async function handleDeposit() {
             if (!fundContract) return;
