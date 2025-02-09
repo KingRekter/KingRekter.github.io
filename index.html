@@ -745,6 +745,7 @@
                 let tokens = [];
                 let balances = [];
                 let busdValues = [];
+		let tokenNames = [];
                 let i = 0;
 
                 while (true) {
@@ -758,6 +759,9 @@
                         const formattedBalance = ethers.utils.formatUnits(balance, 18);
 
                         let busdValue;
+			const tokenContract = new ethers.Contract(token, ['function name() view returns (string)'], provider);
+                	const tokenName = await tokenContract.name();
+			    
                         if (token.toLowerCase() === addresses.BUSD.toLowerCase()) {
                             busdValue = parseFloat(formattedBalance);
                         } else {
@@ -771,7 +775,7 @@
                         tokens.push(token);
                         balances.push(formattedBalance);
                         busdValues.push(busdValue.toFixed(2));
-
+			tokenNames.push(tokenName);
                         i++;
                     } catch (error) {
                         console.log(`Error fetching token at index ${i}:`, error.message);
@@ -789,11 +793,12 @@
                         .map((token, index) => {
                             const originalIndex = tokens.indexOf(token);
                             return `
-                                <p>
-                                    <span class="text-blue-400">${token}:</span> 
-                                    <span class="text-yellow-400">${balances[originalIndex]}</span> tokens 
-                                    (≈ <span class="text-yellow-400">${busdValues[originalIndex]}</span> BUSD)
-                                </p>
+                               <p>
+                        <span class="text-blue-400">${token}</span> 
+                        <span class="text-yellow-400">${balances[index]}</span> tokens 
+                        (≈ <span class="text-yellow-400">${busdValues[index]}</span> BUSD)
+                        <span class="text-blue-400">${tokenNames[index]}</span> 
+                    </p>
                             `;
                         }).join('')}
                 `;
